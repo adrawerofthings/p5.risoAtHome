@@ -1,0 +1,300 @@
+<html>
+  <head>
+    <title>p5.riso@home</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <link rel="stylesheet" href="lib/web31/jquery-ui.css" type="text/css">
+    <script src="lib/web31/jquery-3.5.1.min.js"></script>
+    <script src="lib/web31/jquery-ui.min.js"></script>
+    <script src="lib/web31/jquery.ui.touch-punch.min.js"></script>
+    <script src="lib/web31/code.js"></script>
+    <script src="p5.js"></script>
+    <script src="lib/p5.riso.js"></script>
+  
+  </head>
+  <body>
+    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 560px; z-index: 1;">
+      <div class="windowheader">
+        <div class="windowtitle">p5.riso@home</div>
+      </div>
+      <div class="windowinner">
+        <div class="fullwindowhtml">
+          <div class="icon" onclick="refreshImage()">
+            <img src="icons/RefreshPage.gif">
+            <p>Update</p>
+          </div>
+          <div class="icon" onclick="downloadCanvas()">
+            <img src="icons/FloppyDiskSave.gif">
+            <p>Download</p>
+          </div>
+          <div class="icon" onclick="downloadCanvas()">
+            <img src="icons/HelpRemix.gif">
+            <p>Help</p>
+          </div>
+          <p>
+            <em>Source image file name (must be in <strong><code>data</code></strong> folder):</em>
+            <br />
+            <input type="text" id="textFilename" name="textFilename" size="35" value="TheHouseOnHorseMoutainSample600dpi.png">
+          </p>
+          <p>
+            <em>Customize output and then click refresh image above</em>
+          </p>
+          <ul>
+            <li>
+              <input type="number" id="numberDotsize" name="numberDotsize" min="0" max="1000" value="5">
+              <label for="numberDotsize"> Riso dot size (pixels)</label>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanPrintC" name="booleanPrintC" checked>
+              <label for="booleanPrintC"> Print C (cyan) layer?</label>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanPrintM" name="booleanPrintM" checked>
+              <label for="booleanPrintM"> Print M (magenta) layer?</label>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanPrintY" name="booleanPrintY" checked>
+              <label for="booleanPrintY"> Print Y (yellow) layer?</label>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanPrintK" name="booleanPrintK" checked onclick="checkEnabled();">
+              <label for="booleanPrintK"> Print K (black) layer?</label>
+              <ul>
+                <li>
+                  <input type="checkbox" id="booleanPrintKStraight" name="booleanPrintKStraight" checked>
+                  <label for="booleanPrintKStraight"> Print K (black) layer directly instead of dotted?</label>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanWhitespots" name="booleanWhitespots" checked>
+              <label for="booleanWhitespots"> Create imperfection with randomized white spots</label>
+              <ul>
+                <li>
+                  <input type="number" id="numberWhitespots" name="numberWhitespots" min="0" max="1000" value="5">
+                  <label for="numberWhitespots"> White spot size (pixels)</label>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanOffsetlayers" name="booleanOffsetlayers" value="offsetlayersYes">
+              <label for="booleanOffsetlayers"> Create error moiré effect by offsetting the four CMYK layers</label>
+              <ul>
+                <li>
+                  <input type="number" id="numberOffsetlayers" name="numberOffsetlayers" min="0" max="1000" value="5">
+                  <label for="numberOffsetlayers"> Offset size (pixels)</label>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="credits">
+      Implementation <a href="https://byjasonli.com">by Jason Li</a> using <a href="https://antiboredom.github.io/p5.riso/">p5.Riso</a>, <a href="https://github.com/jywarren/risoAtHome/">riso@home</a> and <a href="https://ianrenton.github.io/web3point1/">Web 3.1</a>.
+    </div>
+
+    <!-- p5riso@home script below -->
+    <script>
+
+        let img;
+        let blueInk;
+        let pinkInk;
+        let yellowInk;
+        let blackInk;
+        let printColor = 'all';
+
+        // threshold for what gets captured by halftone process
+        // decreasing yellow because for whatever reason my
+        // images come out very yellow-tinted
+        let thresholdCyan = 250;
+        let thresholdMagenta = 250;
+        let thresholdYellow = 229;
+
+        // the two values below were for a 300 dpi image 
+        // designed to be printed within a letter/A4 size paper 
+        // let dotsize = 5;
+        // let offsetsize = 3;
+        // let specksize = 5;
+
+        // tried to double for a 600 dpi image but the image
+        // became really faint, so sticking to this dot size
+        // but turning up the offset size and speck size
+        // offset size should be turned way down when we have
+        // white text on dark backgrounds
+        let dotsize = 5;
+        let offsetsize = 10;
+        let specksize = 8;
+
+        function preload() {
+          let fieldTextFilename = document.getElementById("textFilename");
+          img = loadImage('data/' + fieldTextFilename.value);
+        }
+        function addWhiteSpecks(specksize, imageWidth, imageHeight) {
+          if (specksize > 3) {
+            for (let w=0; w < imageWidth - specksize; w+=specksize) {
+              let r = random(100);
+              if (r > 70 && r < 90) {
+                let h = random(imageHeight);
+                for (let x=0; x < specksize - 3; x+=1) {
+                  for (let y=0; y < specksize - 3; y+=1) {
+                    set(w + x, h + y, [255,255,255,255]);
+                  };
+                };
+              } else if (r > 90) {
+                let h = random(imageHeight);
+                for (let x=0; x < specksize; x+=1) {
+                  for (let y=0; y < specksize; y+=1) {
+                    set(w + x, h + y, [255,255,255,255]);
+                  };
+                };
+              };
+            };
+          };
+          updatePixels();
+        };
+        function outputCyanLayer(dotsize, thresholdCustom, offsetsize) {
+          let workingImageC = extractRGBChannel(img, "red");
+          let workingImageC2 = halftoneImage(workingImageC, 'circle', dotsize, 45, thresholdCyan);
+          blueInk.image(workingImageC2, offsetsize, -offsetsize);
+        }
+        function outputMagentaLayer(dotsize, thresholdCustom, offsetsize) {
+          let workingImageM = extractRGBChannel(img, "green");
+          let workingImageM2 = halftoneImage(workingImageM, 'circle', dotsize, 45, thresholdMagenta);
+          pinkInk.image(workingImageM2, -offsetsize, -offsetsize);
+        } 
+        function outputYellowLayer(dotsize, thresholdCustom, offsetsize) {
+          let workingImageY = extractRGBChannel(img, "blue");
+          let workingImageY2 = halftoneImage(workingImageY, 'circle', dotsize, 45, thresholdYellow);
+          yellowInk.image(workingImageY2, 0, offsetsize);
+        }
+        function outputBlackLayerStraight() {
+          let workingImageK = ditherImage(img, "none", 10);
+          blackInk.image(workingImageK, 0, 0);
+        }
+        function outputBlackLayerDotted() {
+          let workingImageK = ditherImage(img, "none", 10);
+          let workingImageK2 = halftoneImage(workingImageK, 'circle', dotsize, 45, thresholdYellow);
+          blackInk.image(workingImageK2, 0, 0);
+        }
+        // to crop off halftone function spillover stray color lines
+        function cropCanvas() {
+          resizeCanvas(img.width - (offsetsize * 2), img.height - (offsetsize * 2), true);
+        }
+        function fitCanvasInWindow() {
+          let elementCanvas = document.getElementById("defaultCanvas0");
+          let zoomfactorW = window.innerWidth / img.width;
+          let zoomfactorH = window.innerHeight / img.height;
+          if ( zoomfactorW < zoomfactorH ) {
+            elementCanvas.style.zoom = zoomfactorW;
+          } else {
+            elementCanvas.style.zoom = zoomfactorH;
+          }
+        }
+
+        function setup() {
+          pixelDensity(1);
+          createCanvas(img.width, img.height);
+
+          // custom ink colors for CMYK
+          // derived from photoshop's auto conversion
+          // from CMY values back to RGB
+          // because actual RGB cyan is too bright
+          blueInk = new Riso([0, 173, 239]);
+          pinkInk = new Riso([237, 0, 140]);
+          yellowInk = new Riso([255, 241, 0]);
+          blackInk = new Riso("black");
+
+          // set these to 90% ink intensity values,
+          // which work well for print because print
+          // can't produce the neon/bright intensities
+          // that monitors do (i.e. toning this down
+          // makes the RGB->CMYK process more seamless)
+          blueInk.fill(204);
+          pinkInk.fill(204);
+          yellowInk.fill(204);
+          blackInk.fill(204);
+
+          drawOnce();          
+        }
+
+        function drawOnce() {
+
+          let checkboxBooleanPrintC = document.getElementById("booleanPrintC");
+          let checkboxBooleanPrintM = document.getElementById("booleanPrintM");
+          let checkboxBooleanPrintY = document.getElementById("booleanPrintY");
+          let checkboxBooleanPrintK = document.getElementById("booleanPrintK");
+          let checkboxBooleanPrintKStraight = document.getElementById("booleanPrintKStraight");
+          let checkboxBooleanWhitespots = document.getElementById("booleanWhitespots");
+          let checkboxBooleanOffsetlayers = document.getElementById("booleanOffsetlayers");
+
+          cropCanvas();
+          fitCanvasInWindow();
+          background(255);
+          clearRiso();
+
+          let fieldNumberDotsize = document.getElementById("numberDotsize").value;
+          dotsize = parseInt(fieldNumberDotsize);
+
+          if (checkboxBooleanOffsetlayers.checked == true){
+            let fieldNumberOffsetlayers = document.getElementById("numberOffsetlayers").value;
+            offsetsize = parseInt(fieldNumberOffsetlayers);
+          } else {
+            offsetsize = 0;
+          }
+          
+          if (checkboxBooleanPrintC.checked == true){
+            outputCyanLayer(dotsize, thresholdCyan, offsetsize);
+          }
+          if (checkboxBooleanPrintM.checked == true){
+            outputMagentaLayer(dotsize, thresholdMagenta, offsetsize);
+          }
+          if (checkboxBooleanPrintY.checked == true){
+            outputYellowLayer(dotsize, thresholdYellow, offsetsize);
+          }
+          if (checkboxBooleanPrintK.checked == true){
+            if (checkboxBooleanPrintKStraight.checked == true){
+              outputBlackLayerStraight();
+            } else {
+              outputBlackLayerDotted();              
+            }
+          }
+          drawRiso();
+          
+          if (checkboxBooleanWhitespots.checked == true){
+            let fieldNumberWhitespots = document.getElementById("numberWhitespots").value;
+            specksize = parseInt(fieldNumberWhitespots);
+          } else {
+            specksize = 0;
+          }
+          addWhiteSpecks(specksize, img.width, img.height);
+
+        }
+
+        function downloadCanvas() {
+          saveCanvas();
+        }
+        function checkEnabled() {
+          console.log("hi!");
+          var isChecked = document.getElementById("booleanPrintK");
+          if (isChecked.checked == true) {
+            document.getElementById("booleanPrintKStraight").disabled = false;
+          } else {
+            document.getElementById("booleanPrintKStraight").disabled = true;
+          }
+        }
+        function refreshImage() {
+          window.location.reload()
+        }
+        // Calls refresh when people tap enter in the filename field
+        refreshEnter = document.getElementById('textFilename');
+        refreshEnter.addEventListener('keyup', function onEvent(e) {
+            if (e.keyCode === 13) {
+                refreshImage();
+            }
+        });
+    </script>
+    <!-- p5riso@home script end -->
+  </body>
+</html>
