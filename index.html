@@ -19,8 +19,8 @@
         <div class="windowtitle">p5.riso@home</div>
       </div>
       <div class="windowinner">
-        <div class="fullwindowhtml">
-          <div class="icon" onclick="refreshImage()">
+        <div class="fullwindowhtml color-black">
+          <div id="iconUpdate" class="icon" onclick="refreshImage()">
             <img src="icons/RefreshPage.gif">
             <p>Update</p>
           </div>
@@ -33,47 +33,47 @@
             <p>Help</p>
           </div>
           <p>
-            <em>Source image file name (must be in <strong><code>data</code></strong> folder):</em>
+            <em>Source image file name (must be in <strong>data</strong> folder):</em>
             <br />
-            <input type="text" id="textFilename" name="textFilename" size="35" value="TheHouseOnHorseMoutainSample600dpi.png">
+            <input type="text" id="textFilename" name="textFilename" size="35" value="" oninput="updateReminder()">
           </p>
           <p>
-            <em>Customize output and then click refresh image above</em>
+            <em>Customize output, then click the <strong>Update</strong> icon above</em>
           </p>
           <ul>
             <li>
-              <input type="number" id="numberDotsize" name="numberDotsize" min="0" max="1000" value="5">
+              <input type="number" id="numberDotsize" name="numberDotsize" min="0" max="1000">
               <label for="numberDotsize"> Riso dot size (pixels)</label>
             </li>
             <li>
-              <input type="checkbox" id="booleanPrintC" name="booleanPrintC" checked>
+              <input type="checkbox" id="booleanPrintC" name="booleanPrintC">
               <label for="booleanPrintC"> Print C (cyan) layer?</label>
             </li>
             <li>
-              <input type="checkbox" id="booleanPrintM" name="booleanPrintM" checked>
+              <input type="checkbox" id="booleanPrintM" name="booleanPrintM">
               <label for="booleanPrintM"> Print M (magenta) layer?</label>
             </li>
             <li>
-              <input type="checkbox" id="booleanPrintY" name="booleanPrintY" checked>
+              <input type="checkbox" id="booleanPrintY" name="booleanPrintY">
               <label for="booleanPrintY"> Print Y (yellow) layer?</label>
             </li>
             <li>
-              <input type="checkbox" id="booleanPrintK" name="booleanPrintK" checked onclick="checkEnabled();">
+              <input type="checkbox" id="booleanPrintK" name="booleanPrintK" onclick="checkEnabled();">
               <label for="booleanPrintK"> Print K (black) layer?</label>
               <ul>
                 <li>
-                  <input type="checkbox" id="booleanPrintKStraight" name="booleanPrintKStraight" checked>
+                  <input type="checkbox" id="booleanPrintKStraight" name="booleanPrintKStraight">
                   <label for="booleanPrintKStraight"> Print K (black) layer directly instead of dotted?</label>
                 </li>
               </ul>
             </li>
             <li>
-              <input type="checkbox" id="booleanWhitespots" name="booleanWhitespots" checked>
-              <label for="booleanWhitespots"> Create imperfection with randomized white spots</label>
+              <input type="checkbox" id="booleanWhiteSpots" name="booleanWhiteSpots">
+              <label for="booleanWhiteSpots"> Create imperfection with randomized white spots</label>
               <ul>
                 <li>
-                  <input type="number" id="numberWhitespots" name="numberWhitespots" min="0" max="1000" value="5">
-                  <label for="numberWhitespots"> White spot size (pixels)</label>
+                  <input type="number" id="numberWhiteSpots" name="numberWhiteSpots" min="0" max="1000">
+                  <label for="numberWhiteSpots"> White spot size (pixels)</label>
                 </li>
               </ul>
             </li>
@@ -82,7 +82,7 @@
               <label for="booleanOffsetlayers"> Create error moiré effect by offsetting the four CMYK layers</label>
               <ul>
                 <li>
-                  <input type="number" id="numberOffsetlayers" name="numberOffsetlayers" min="0" max="1000" value="5">
+                  <input type="number" id="numberOffsetlayers" name="numberOffsetlayers" min="0" max="1000">
                   <label for="numberOffsetlayers"> Offset size (pixels)</label>
                 </li>
               </ul>
@@ -116,36 +116,109 @@
         // designed to be printed within a letter/A4 size paper 
         // let dotsize = 5;
         // let offsetsize = 3;
-        // let specksize = 5;
+        // let spotsize = 5;
 
         // tried to double for a 600 dpi image but the image
         // became really faint, so sticking to this dot size
-        // but turning up the offset size and speck size
+        // but turning up the offset size and spot size
         // offset size should be turned way down when we have
         // white text on dark backgrounds
-        let dotsize = 5;
-        let offsetsize = 10;
-        let specksize = 8;
+        // let dotsize = 5;
+        // let offsetsize = 10;
+        // let spotsize = 8;
+
+        // parameters available on the website GUI that are
+        // also stored within the URL parameters
+        let paramFilename;
+        let paramDotsize;
+        let paramBooleanPrintC;
+        let paramBooleanPrintM;
+        let paramBooleanPrintY;
+        let paramBooleanPrintK;
+        let paramBooleanPrintKStraight;
+        let paramBooleanWhiteSpots;
+        let paramBooleanOffsetlayers;
+        let paramOffsetSize;
+        let paramWhiteSpotsSize;
+
+        let urlParamsString;
+        let urlParams;
 
         function preload() {
-          let fieldTextFilename = document.getElementById("textFilename");
-          img = loadImage('data/' + fieldTextFilename.value);
+
+          // initiate filename parameter in URL
+          urlParamsString = window.location.search;
+          urlParams = new URLSearchParams(urlParamsString);
+
+          if ( urlParams.has('filename') ) {
+
+            fetchUrlParams()
+
+          } else {
+
+            // default values for filename + print parameters
+            paramFilename = 'TheHouseOnHorseMoutainSample600dpi.png';
+            urlParams.set('filename', paramFilename);
+
+            paramDotsize = 5;
+            urlParams.set('dotsize', paramDotsize);
+
+            paramBooleanPrintC = true;
+            paramBooleanPrintM = true;
+            paramBooleanPrintY = true;
+            paramBooleanPrintK = true;
+            urlParams.set('printC', paramBooleanPrintC);
+            urlParams.set('printM', paramBooleanPrintM);
+            urlParams.set('printY', paramBooleanPrintY);
+            urlParams.set('printK', paramBooleanPrintK);
+
+            paramBooleanPrintKStraight = true;
+            urlParams.set('printKstraight', paramBooleanPrintKStraight);
+
+            paramBooleanWhiteSpots = true;
+            urlParams.set('whitespots', paramBooleanWhiteSpots);
+
+            paramWhiteSpotsSize = 5;
+            urlParams.set('whitespotssize', paramWhiteSpotsSize);
+
+            paramBooleanOffsetlayers = false;
+            urlParams.set('offset', paramBooleanOffsetlayers);
+
+            paramOffsetSize = 10;
+            urlParams.set('offsetsize', paramOffsetSize);
+
+            history.pushState({}, "", window.location.origin + '?' + urlParams);
+          }
+
+          document.getElementById("textFilename").value = paramFilename;
+          document.getElementById("numberDotsize").value = paramDotsize;
+          document.getElementById("booleanPrintC").checked = paramBooleanPrintC;
+          document.getElementById("booleanPrintM").checked = paramBooleanPrintM;
+          document.getElementById("booleanPrintY").checked = paramBooleanPrintY;
+          document.getElementById("booleanPrintK").checked = paramBooleanPrintK;
+          document.getElementById("booleanPrintKStraight").checked = paramBooleanPrintKStraight;
+          document.getElementById("booleanWhiteSpots").checked = paramBooleanWhiteSpots;
+          document.getElementById("numberWhiteSpots").value = parseInt(paramWhiteSpotsSize);
+          document.getElementById("booleanOffsetlayers").checked = paramBooleanOffsetlayers;
+          document.getElementById("numberOffsetlayers").value = parseInt(paramOffsetSize);
+
+          img = loadImage('data/' + paramFilename);
         }
-        function addWhiteSpecks(specksize, imageWidth, imageHeight) {
-          if (specksize > 3) {
-            for (let w=0; w < imageWidth - specksize; w+=specksize) {
+        function addWhiteSpots(spotsize, imageWidth, imageHeight) {
+          if (spotsize > 3) {
+            for (let w=0; w < imageWidth - spotsize; w+=spotsize) {
               let r = random(100);
               if (r > 70 && r < 90) {
                 let h = random(imageHeight);
-                for (let x=0; x < specksize - 3; x+=1) {
-                  for (let y=0; y < specksize - 3; y+=1) {
+                for (let x=0; x < spotsize - 3; x+=1) {
+                  for (let y=0; y < spotsize - 3; y+=1) {
                     set(w + x, h + y, [255,255,255,255]);
                   };
                 };
               } else if (r > 90) {
                 let h = random(imageHeight);
-                for (let x=0; x < specksize; x+=1) {
-                  for (let y=0; y < specksize; y+=1) {
+                for (let x=0; x < spotsize; x+=1) {
+                  for (let y=0; y < spotsize; y+=1) {
                     set(w + x, h + y, [255,255,255,255]);
                   };
                 };
@@ -175,12 +248,12 @@
         }
         function outputBlackLayerDotted() {
           let workingImageK = ditherImage(img, "none", 10);
-          let workingImageK2 = halftoneImage(workingImageK, 'circle', dotsize, 45, thresholdYellow);
+          let workingImageK2 = halftoneImage(workingImageK, 'circle', paramDotsize, 45, thresholdYellow);
           blackInk.image(workingImageK2, 0, 0);
         }
         // to crop off halftone function spillover stray color lines
         function cropCanvas() {
-          resizeCanvas(img.width - (offsetsize * 2), img.height - (offsetsize * 2), true);
+          resizeCanvas(img.width - (paramOffsetSize * 2), img.height - (paramOffsetSize * 2), true);
         }
         function fitCanvasInWindow() {
           let elementCanvas = document.getElementById("defaultCanvas0");
@@ -194,6 +267,7 @@
         }
 
         function setup() {
+
           pixelDensity(1);
           createCanvas(img.width, img.height);
 
@@ -216,45 +290,36 @@
           yellowInk.fill(204);
           blackInk.fill(204);
 
-          drawOnce();          
+          noLoop();
         }
 
-        function drawOnce() {
+        function draw() {
 
-          let checkboxBooleanPrintC = document.getElementById("booleanPrintC");
-          let checkboxBooleanPrintM = document.getElementById("booleanPrintM");
-          let checkboxBooleanPrintY = document.getElementById("booleanPrintY");
-          let checkboxBooleanPrintK = document.getElementById("booleanPrintK");
-          let checkboxBooleanPrintKStraight = document.getElementById("booleanPrintKStraight");
-          let checkboxBooleanWhitespots = document.getElementById("booleanWhitespots");
-          let checkboxBooleanOffsetlayers = document.getElementById("booleanOffsetlayers");
+          urlParamsString = window.location.search;
+          urlParams = new URLSearchParams(urlParamsString);
+          
+          fetchUrlParams();
 
           cropCanvas();
           fitCanvasInWindow();
           background(255);
           clearRiso();
 
-          let fieldNumberDotsize = document.getElementById("numberDotsize").value;
-          dotsize = parseInt(fieldNumberDotsize);
-
-          if (checkboxBooleanOffsetlayers.checked == true){
-            let fieldNumberOffsetlayers = document.getElementById("numberOffsetlayers").value;
-            offsetsize = parseInt(fieldNumberOffsetlayers);
-          } else {
-            offsetsize = 0;
+          if (paramBooleanOffsetlayers == false || paramBooleanOffsetlayers == 'false'){
+            paramOffsetSize = 0;
           }
           
-          if (checkboxBooleanPrintC.checked == true){
-            outputCyanLayer(dotsize, thresholdCyan, offsetsize);
+          if (paramBooleanPrintC == true || paramBooleanPrintC == 'true' ){
+            outputCyanLayer(parseInt(paramDotsize), thresholdCyan, parseInt(paramOffsetSize));
           }
-          if (checkboxBooleanPrintM.checked == true){
-            outputMagentaLayer(dotsize, thresholdMagenta, offsetsize);
+          if (paramBooleanPrintM == true || paramBooleanPrintM == 'true' ){
+            outputMagentaLayer(parseInt(paramDotsize), thresholdMagenta, parseInt(paramOffsetSize));
           }
-          if (checkboxBooleanPrintY.checked == true){
-            outputYellowLayer(dotsize, thresholdYellow, offsetsize);
+          if (paramBooleanPrintY == true || paramBooleanPrintY == 'true' ){
+            outputYellowLayer(parseInt(paramDotsize), thresholdYellow, parseInt(paramOffsetSize));
           }
-          if (checkboxBooleanPrintK.checked == true){
-            if (checkboxBooleanPrintKStraight.checked == true){
+          if (paramBooleanPrintK == true || paramBooleanPrintK == 'true' ){
+            if (paramBooleanPrintKStraight == true || paramBooleanPrintKStraight == "true"){
               outputBlackLayerStraight();
             } else {
               outputBlackLayerDotted();              
@@ -262,21 +327,17 @@
           }
           drawRiso();
           
-          if (checkboxBooleanWhitespots.checked == true){
-            let fieldNumberWhitespots = document.getElementById("numberWhitespots").value;
-            specksize = parseInt(fieldNumberWhitespots);
-          } else {
-            specksize = 0;
+          if ( paramBooleanWhiteSpots == false || paramBooleanWhiteSpots == "false"){
+            paramWhiteSpotsSize = 0;
           }
-          addWhiteSpecks(specksize, img.width, img.height);
-
+          addWhiteSpots(paramWhiteSpotsSize, img.width, img.height);
         }
 
         function downloadCanvas() {
           saveCanvas();
         }
+
         function checkEnabled() {
-          console.log("hi!");
           var isChecked = document.getElementById("booleanPrintK");
           if (isChecked.checked == true) {
             document.getElementById("booleanPrintKStraight").disabled = false;
@@ -284,9 +345,54 @@
             document.getElementById("booleanPrintKStraight").disabled = true;
           }
         }
+
         function refreshImage() {
-          window.location.reload()
+          
+          paramFileName = document.getElementById('textFilename').value;
+          paramDotsize = document.getElementById("numberDotsize").value;
+          paramBooleanPrintC = document.getElementById("booleanPrintC").checked;
+          paramBooleanPrintM = document.getElementById("booleanPrintM").checked;
+          paramBooleanPrintY = document.getElementById("booleanPrintY").checked;
+          paramBooleanPrintK = document.getElementById("booleanPrintK").checked;
+          paramBooleanPrintKStraight = document.getElementById("booleanPrintKStraight").checked;
+          paramBooleanWhiteSpots = document.getElementById("booleanWhiteSpots").checked;
+          paramBooleanOffsetlayers = document.getElementById("booleanOffsetlayers").checked;
+          paramOffsetSize = document.getElementById("numberOffsetlayers").value;
+
+          urlParamsString = window.location.search;
+          urlParams = new URLSearchParams(urlParamsString);
+
+          urlParams.set('filename', paramFileName);
+          urlParams.set('dotsize', paramDotsize);
+          urlParams.set('printC', paramBooleanPrintC);
+          urlParams.set('printM', paramBooleanPrintM);
+          urlParams.set('printY', paramBooleanPrintY);
+          urlParams.set('printK', paramBooleanPrintK);
+          urlParams.set('printKstraight', paramBooleanPrintKStraight);
+          urlParams.set('whitespots', paramBooleanWhiteSpots);
+          urlParams.set('whitespotssize', paramWhiteSpotsSize);
+          urlParams.set('offset', paramBooleanOffsetlayers);
+          urlParams.set('offsetsize', paramOffsetSize);
+          
+          window.location.href = window.location.origin + '?' + urlParams;
+
         }
+
+        function fetchUrlParams() {
+          // grab filename + paramters from URL parameters
+          paramFilename = urlParams.get('filename');
+          paramDotsize = urlParams.get('dotsize');
+          paramBooleanPrintC = ( urlParams.get('printC') === 'true' );
+          paramBooleanPrintM = ( urlParams.get('printM') === 'true' );
+          paramBooleanPrintY = ( urlParams.get('printY') === 'true' );
+          paramBooleanPrintK = ( urlParams.get('printK') === 'true' );
+          paramBooleanPrintKStraight = ( urlParams.get('printKstraight') === 'true' );
+          paramBooleanWhiteSpots = ( urlParams.get('whitespots') === 'true' );
+          paramWhiteSpotsSize = urlParams.get('whitespotssize');
+          paramBooleanOffsetlayers = ( urlParams.get('offset') === 'true' );
+          paramOffsetSize = urlParams.get('offsetsize');
+        }
+
         // Calls refresh when people tap enter in the filename field
         refreshEnter = document.getElementById('textFilename');
         refreshEnter.addEventListener('keyup', function onEvent(e) {
@@ -294,6 +400,10 @@
                 refreshImage();
             }
         });
+        function updateReminder() {
+          var element = document.getElementById("iconUpdate");
+          element.classList.add("iconUpdateAlert");
+        }
     </script>
     <!-- p5riso@home script end -->
   </body>

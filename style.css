@@ -183,3 +183,7 @@ textarea.fullwindowdosprompt {
     width: 48px;
     height: 48px;
 }
+
+#iconUpdate.iconUpdateAlert {
+    outline: 3px solid #11EAF2;
+}
