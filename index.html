@@ -226,26 +226,28 @@
         function addGrainyTexture(imageWidth, imageHeight) {
           for (let w=1; w < imageWidth - paramOffsetSize; w+=1) {
             for (let h=1; h < imageHeight - 1; h+=1) {
+              let c = get(w, h);
+
+              // add grain
+              let increment = random([-3, 0, 3]);
+              increment = increment * increment * increment;
+              if (c[0] < 254) {
+                c[0] = c[0] + increment;
+                c[1] = c[1] + increment;
+                c[2] = c[2] + increment;
+              };
+              set(w, h, c);
+
+              // add cloudy
               let noiseLevel = 30;
               let noiseScale = 0.005
               let nx = w * noiseScale;
               let ny = h * noiseScale;
               let noiseAdd = (noiseLevel * noise(nx, ny)) - (0.5 * noiseLevel);
-              let c = get(w, h);
               c[0] = c[0] + noiseAdd;
               c[1] = c[1] + noiseAdd;
               c[2] = c[2] + noiseAdd;
               set(w, h, c);
-              /*
-              let increment = random(40);
-              if (increment >= 3) {
-                increment = increment * increment;
-                let c = get(w, h);
-                c[0] = c[0] + increment;
-                c[1] = c[1] + increment;
-                c[2] = c[2] + increment;
-                set(w, h, c);
-              }; */
             };
           };
           updatePixels();
