@@ -104,19 +104,31 @@ html, body {
     padding: 0px 8px;
     line-height: 1.25;
 }
+.fullwindowhtml p {
+    margin: 0.5em 0 1em;
+}
+.fullwindowhtml p + ul {
+    margin-top: -0.5em;
+}
 .fullwindowhtml > ul {
     padding-left: 0; 
     list-style: none;
+    margin-top: -0.25em;
 }
 .fullwindowhtml > ul ul {
     padding-left: 1.5em;
     list-style: none;
 }
 .fullwindowhtml > ul > li {
-    margin: 1em 0;
+    margin: 0.6em 0;
 }
 .fullwindowhtml > ul ul > li {
-    margin: 0.5em 0 1em;
+    margin: 0.33em 0 0.75em;
+}
+.fullwindowhtml hr {
+    border: 0;
+    height: 0.33em;
+    padding: 0;
 }
 
 textarea.fullwindowtextarea {

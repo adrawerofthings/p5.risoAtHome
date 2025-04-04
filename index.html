@@ -14,7 +14,7 @@
   
   </head>
   <body>
-    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 575px; z-index: 1;">
+    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 605px; z-index: 1;">
       <div class="windowheader">
         <div class="windowtitle">p5.riso@home</div>
       </div>
@@ -54,6 +54,11 @@
               <label for="css">Dither</label>
             </li>
             <li>
+              <input type="radio" id="radioNoHalftoneDither" name="halftoneOrDither">
+              <label for="css">No halftone/dither</label>
+            </li>
+            <hr />
+            <li>
               <input type="checkbox" id="booleanPrintC" name="booleanPrintC">
               <label for="booleanPrintC"> Print C (cyan) layer?</label>
             </li>
@@ -65,6 +70,7 @@
               <input type="checkbox" id="booleanPrintY" name="booleanPrintY">
               <label for="booleanPrintY"> Print Y (yellow) layer?</label>
             </li>
+            <hr />
             <li>
               <input type="checkbox" id="booleanPrintK" name="booleanPrintK" onclick="checkEnabled();">
               <label for="booleanPrintK"> Make black outlines/areas darker</label>
@@ -130,6 +136,7 @@
         // also stored within the URL parameters
         let paramBooleanHalftone;
         let paramBooleanDither;
+        let paramBooleanNoHalftoneDither;
         let paramFilename;
         let paramDotsize;
         let paramBooleanPrintC;
@@ -167,8 +174,10 @@
 
             paramBooleanHalftone = true;
             paramBooleanDither = false;
+            paramBooleanNoHalftoneDither = false;
             urlParams.set('halftone', paramBooleanHalftone);
             urlParams.set('dither', paramBooleanDither);
+            urlParams.set('nohalftonedither', paramBooleanNoHalftoneDither);
 
             paramBooleanPrintC = true;
             paramBooleanPrintM = true;
@@ -204,12 +213,15 @@
             paramBooleanHalftone = true;
           } else if (document.getElementById('radioDither').checked) {
             paramBooleanDither = true;
+          } else if (document.getElementById('radioNoHalftoneDither').checked) {
+            paramBooleanNoHalftoneDither = true;
           }
 
           document.getElementById("textFilename").value = paramFilename;
           document.getElementById("numberDotsize").value = paramDotsize;
           document.getElementById("radioHalftone").checked = paramBooleanHalftone;
           document.getElementById("radioDither").checked = paramBooleanDither;
+          document.getElementById("radioNoHalftoneDither").checked = paramBooleanNoHalftoneDither;
           document.getElementById("booleanPrintC").checked = paramBooleanPrintC;
           document.getElementById("booleanPrintM").checked = paramBooleanPrintM;
           document.getElementById("booleanPrintY").checked = paramBooleanPrintY;
@@ -436,6 +448,7 @@
         function refreshImage() {
           paramBooleanHalftone = document.getElementById('radioHalftone').checked;
           paramBooleanDither = document.getElementById('radioDither').checked;
+          paramBooleanNoHalftoneDither = document.getElementById('radioNoHalftoneDither').checked;
 
           paramFileName = document.getElementById('textFilename').value;
           paramDotsize = document.getElementById("numberDotsize").value;
@@ -457,6 +470,7 @@
           urlParams.set('dotsize', paramDotsize);
           urlParams.set('halftone', paramBooleanHalftone);
           urlParams.set('dither', paramBooleanDither);
+          urlParams.set('nohalftonedither', paramBooleanNoHalftoneDither);
           urlParams.set('printC', paramBooleanPrintC);
           urlParams.set('printM', paramBooleanPrintM);
           urlParams.set('printY', paramBooleanPrintY);
@@ -478,6 +492,7 @@
           paramDotsize = urlParams.get('dotsize');
           paramBooleanHalftone = ( urlParams.get('halftone') === 'true' );
           paramBooleanDither = ( urlParams.get('dither') === 'true' );
+          paramBooleanNoHalftoneDither = ( urlParams.get('nohalftonedither') === 'true' );
           paramBooleanPrintC = ( urlParams.get('printC') === 'true' );
           paramBooleanPrintM = ( urlParams.get('printM') === 'true' );
           paramBooleanPrintY = ( urlParams.get('printY') === 'true' );
