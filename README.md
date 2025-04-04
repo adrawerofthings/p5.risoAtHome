@@ -30,7 +30,7 @@ Many groups that sell and promote Risograph printing servies tout its eco-friend
 
 ## How to setup and run this code
 
-1. Setup a local server environment to run the HTML file in your web browser. I use [MAMP](https://www.mamp.info/en/downloads/) (the free version), but there are plenty of other options. You need to do this because your web browser won’t let you read from and download files from a random HTML file you’ve downloaded to a local folder.
+1. Setup a local server environment to run the HTML file in your web browser. Popular options include [MAMP](https://www.mamp.info/en/downloads/) (the free version runs as an app) and [Live Server](https://www.npmjs.com/package/live-server) (if you're comfortable with command line). You need to do this because your web browser won’t let you read from and download files from a random HTML file you’ve downloaded to a local folder.
 2. Download the code into a folder on this server.
 3. Open `index.html` in your web browser using a URL like `http://localhost:8888/p5risoathome/`
 

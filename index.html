@@ -14,7 +14,7 @@
   
   </head>
   <body>
-    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 560px; z-index: 1;">
+    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 575px; z-index: 1;">
       <div class="windowheader">
         <div class="windowtitle">p5.riso@home</div>
       </div>
@@ -28,10 +28,12 @@
             <img src="icons/FloppyDiskSave.gif">
             <p>Download</p>
           </div>
-          <div class="icon" onclick="downloadCanvas()">
-            <img src="icons/HelpRemix.gif">
-            <p>Help</p>
-          </div>
+          <a href="https://github.com/adrawerofthings/p5.risoAtHome">
+            <div class="icon">
+              <img src="icons/HelpRemix.gif">
+              <p style="color:black;">Help</p>
+            </div>
+          </a>
           <p>
             <em>Source image file name (must be in <strong>data</strong> folder):</em>
             <br />
@@ -42,8 +44,14 @@
           </p>
           <ul>
             <li>
+              <input type="radio" id="radioHalftone" name="halftoneOrDither" checked="checked">
+              <label for="radioHalftone">Halftone</label>: 
+              <label for="numberDotsize">dot size (pixels)</label>
               <input type="number" id="numberDotsize" name="numberDotsize" min="0" max="1000">
-              <label for="numberDotsize"> Riso dot size (pixels)</label>
+            </li>
+            <li>
+              <input type="radio" id="radioDither" name="halftoneOrDither">
+              <label for="css">Dither</label>
             </li>
             <li>
               <input type="checkbox" id="booleanPrintC" name="booleanPrintC">
@@ -59,13 +67,17 @@
             </li>
             <li>
               <input type="checkbox" id="booleanPrintK" name="booleanPrintK" onclick="checkEnabled();">
-              <label for="booleanPrintK"> Print K (black) layer?</label>
+              <label for="booleanPrintK"> Make black outlines/areas darker</label>
               <ul>
                 <li>
                   <input type="checkbox" id="booleanPrintKStraight" name="booleanPrintKStraight">
-                  <label for="booleanPrintKStraight"> Print K (black) layer directly instead of dotted?</label>
+                  <label for="booleanPrintKStraight"> ...and without halftone/dither</label>
                 </li>
               </ul>
+            </li>
+            <li>
+              <input type="checkbox" id="booleanGrainyTexture" name="booleanGrainyTexture">
+              <label for="booleanGrainyTexture"> Apply cloudy organic print texture</label>
             </li>
             <li>
               <input type="checkbox" id="booleanWhiteSpots" name="booleanWhiteSpots">
@@ -73,7 +85,7 @@
               <ul>
                 <li>
                   <input type="number" id="numberWhiteSpots" name="numberWhiteSpots" min="0" max="1000">
-                  <label for="numberWhiteSpots"> White spot size (pixels)</label>
+                  <label for="numberWhiteSpots"> Max size of white spots (pixels)</label>
                 </li>
               </ul>
             </li>
@@ -104,6 +116,8 @@
         let yellowInk;
         let blackInk;
         let printColor = 'all';
+        let thresholdDither = 128;
+        let ditherType = "atkinson";
 
         // threshold for what gets captured by halftone process
         // decreasing yellow because for whatever reason my
@@ -112,23 +126,10 @@
         let thresholdMagenta = 250;
         let thresholdYellow = 229;
 
-        // the two values below were for a 300 dpi image 
-        // designed to be printed within a letter/A4 size paper 
-        // let dotsize = 5;
-        // let offsetsize = 3;
-        // let spotsize = 5;
-
-        // tried to double for a 600 dpi image but the image
-        // became really faint, so sticking to this dot size
-        // but turning up the offset size and spot size
-        // offset size should be turned way down when we have
-        // white text on dark backgrounds
-        // let dotsize = 5;
-        // let offsetsize = 10;
-        // let spotsize = 8;
-
         // parameters available on the website GUI that are
         // also stored within the URL parameters
+        let paramBooleanHalftone;
+        let paramBooleanDither;
         let paramFilename;
         let paramDotsize;
         let paramBooleanPrintC;
@@ -136,10 +137,11 @@
         let paramBooleanPrintY;
         let paramBooleanPrintK;
         let paramBooleanPrintKStraight;
+        let paramBooleanGrainyTexture;
         let paramBooleanWhiteSpots;
+        let paramWhiteSpotsSize;
         let paramBooleanOffsetlayers;
         let paramOffsetSize;
-        let paramWhiteSpotsSize;
 
         let urlParamsString;
         let urlParams;
@@ -163,6 +165,11 @@
             paramDotsize = 5;
             urlParams.set('dotsize', paramDotsize);
 
+            paramBooleanHalftone = true;
+            paramBooleanDither = false;
+            urlParams.set('halftone', paramBooleanHalftone);
+            urlParams.set('dither', paramBooleanDither);
+
             paramBooleanPrintC = true;
             paramBooleanPrintM = true;
             paramBooleanPrintY = true;
@@ -175,10 +182,13 @@
             paramBooleanPrintKStraight = true;
             urlParams.set('printKstraight', paramBooleanPrintKStraight);
 
+            paramBooleanGrainyTexture = false;
+            urlParams.set('texture', paramBooleanGrainyTexture);
+
             paramBooleanWhiteSpots = true;
             urlParams.set('whitespots', paramBooleanWhiteSpots);
 
-            paramWhiteSpotsSize = 5;
+            paramWhiteSpotsSize = 2;
             urlParams.set('whitespotssize', paramWhiteSpotsSize);
 
             paramBooleanOffsetlayers = false;
@@ -190,13 +200,22 @@
             history.pushState({}, "", window.location.origin + '?' + urlParams);
           }
 
+          if (document.getElementById('radioHalftone').checked) {
+            paramBooleanHalftone = true;
+          } else if (document.getElementById('radioDither').checked) {
+            paramBooleanDither = true;
+          }
+
           document.getElementById("textFilename").value = paramFilename;
           document.getElementById("numberDotsize").value = paramDotsize;
+          document.getElementById("radioHalftone").checked = paramBooleanHalftone;
+          document.getElementById("radioDither").checked = paramBooleanDither;
           document.getElementById("booleanPrintC").checked = paramBooleanPrintC;
           document.getElementById("booleanPrintM").checked = paramBooleanPrintM;
           document.getElementById("booleanPrintY").checked = paramBooleanPrintY;
           document.getElementById("booleanPrintK").checked = paramBooleanPrintK;
           document.getElementById("booleanPrintKStraight").checked = paramBooleanPrintKStraight;
+          document.getElementById("booleanGrainyTexture").checked = paramBooleanGrainyTexture;
           document.getElementById("booleanWhiteSpots").checked = paramBooleanWhiteSpots;
           document.getElementById("numberWhiteSpots").value = parseInt(paramWhiteSpotsSize);
           document.getElementById("booleanOffsetlayers").checked = paramBooleanOffsetlayers;
@@ -204,22 +223,63 @@
 
           img = loadImage('data/' + paramFilename);
         }
+        function addGrainyTexture(imageWidth, imageHeight) {
+          for (let w=1; w < imageWidth - paramOffsetSize; w+=1) {
+            for (let h=1; h < imageHeight - 1; h+=1) {
+              let noiseLevel = 30;
+              let noiseScale = 0.005
+              let nx = w * noiseScale;
+              let ny = h * noiseScale;
+              let noiseAdd = (noiseLevel * noise(nx, ny)) - (0.5 * noiseLevel);
+              let c = get(w, h);
+              c[0] = c[0] + noiseAdd;
+              c[1] = c[1] + noiseAdd;
+              c[2] = c[2] + noiseAdd;
+              set(w, h, c);
+              /*
+              let increment = random(40);
+              if (increment >= 3) {
+                increment = increment * increment;
+                let c = get(w, h);
+                c[0] = c[0] + increment;
+                c[1] = c[1] + increment;
+                c[2] = c[2] + increment;
+                set(w, h, c);
+              }; */
+            };
+          };
+          updatePixels();
+        };
         function addWhiteSpots(spotsize, imageWidth, imageHeight) {
-          if (spotsize > 3) {
-            for (let w=0; w < imageWidth - spotsize; w+=spotsize) {
-              let r = random(100);
-              if (r > 70 && r < 90) {
-                let h = random(imageHeight);
-                for (let x=0; x < spotsize - 3; x+=1) {
-                  for (let y=0; y < spotsize - 3; y+=1) {
-                    set(w + x, h + y, [255,255,255,255]);
+          if (spotsize > 0) {
+            for (let s=spotsize; s > 0; s-=1) {
+              for (let w=0; w < imageWidth - s; w+=1) {
+                let r = random(100);
+                if (r < 5) {
+                  let h = random(imageHeight);
+                  for (let x=0; x < s; x+=1) {
+                    for (let y=0; y < s; y+=1) {
+                      let c = get(w + x, h + y);
+                      c[0] = c[0] + 100;
+                      c[1] = c[1] + 100;
+                      c[2] = c[2] + 100;
+                      set(w + x, h + y, c);
+                    };
                   };
                 };
-              } else if (r > 90) {
-                let h = random(imageHeight);
-                for (let x=0; x < spotsize; x+=1) {
-                  for (let y=0; y < spotsize; y+=1) {
-                    set(w + x, h + y, [255,255,255,255]);
+              };
+              for (let h=0; h < imageHeight - spotsize; h+=1) {
+                let r = random(100);
+                if (r < 5) {
+                  let w = random(imageWidth);
+                  for (let x=0; x < s; x+=1) {
+                    for (let y=0; y < s; y+=1) {
+                      let c = get(w + x, h + y);
+                      c[0] = c[0] + 250;
+                      c[1] = c[1] + 250;
+                      c[2] = c[2] + 250;
+                      set(w + x, h + y, c);
+                    };
                   };
                 };
               };
@@ -229,26 +289,46 @@
         };
         function outputCyanLayer(dotsize, thresholdCustom, offsetsize) {
           let workingImageC = extractRGBChannel(img, "red");
-          let workingImageC2 = halftoneImage(workingImageC, 'circle', dotsize, 45, thresholdCyan);
+          let workingImageC2;
+          if (paramBooleanHalftone == true || paramBooleanHalftone == 'true' ) {
+            workingImageC2 = halftoneImage(workingImageC, 'circle', dotsize, 45, thresholdCyan);
+          } else {
+            workingImageC2 = ditherImage(workingImageC, ditherType, thresholdDither);
+          }
           blueInk.image(workingImageC2, offsetsize, -offsetsize);
         }
         function outputMagentaLayer(dotsize, thresholdCustom, offsetsize) {
           let workingImageM = extractRGBChannel(img, "green");
-          let workingImageM2 = halftoneImage(workingImageM, 'circle', dotsize, 45, thresholdMagenta);
+          let workingImageM2;
+          if (paramBooleanHalftone == true || paramBooleanHalftone == 'true' ) {
+            workingImageM2 = halftoneImage(workingImageM, 'circle', dotsize, 45, thresholdMagenta);
+          } else {
+            workingImageM2 = ditherImage(workingImageM, ditherType, thresholdDither);
+          }
           pinkInk.image(workingImageM2, -offsetsize, -offsetsize);
         } 
         function outputYellowLayer(dotsize, thresholdCustom, offsetsize) {
           let workingImageY = extractRGBChannel(img, "blue");
-          let workingImageY2 = halftoneImage(workingImageY, 'circle', dotsize, 45, thresholdYellow);
+          let workingImageY2;
+          if (paramBooleanHalftone == true || paramBooleanHalftone == 'true' ) {
+            workingImageY2 = halftoneImage(workingImageY, 'circle', dotsize, 45, thresholdYellow);
+          } else {
+            workingImageY2 = ditherImage(workingImageY, ditherType, thresholdDither);
+          }
           yellowInk.image(workingImageY2, 0, offsetsize);
         }
         function outputBlackLayerStraight() {
           let workingImageK = ditherImage(img, "none", 10);
           blackInk.image(workingImageK, 0, 0);
         }
-        function outputBlackLayerDotted() {
+        function outputBlackLayerDotted(dotsize) {
           let workingImageK = ditherImage(img, "none", 10);
-          let workingImageK2 = halftoneImage(workingImageK, 'circle', paramDotsize, 45, thresholdYellow);
+          let workingImageK2;
+          if (paramBooleanHalftone == true || paramBooleanHalftone == 'true' ) {
+            workingImageK2 = halftoneImage(workingImageK, 'circle', dotsize, 45, thresholdYellow);
+          } else {
+            workingImageK2 = ditherImage(workingImageK, ditherType, thresholdDither);
+          }
           blackInk.image(workingImageK2, 0, 0);
         }
         // to crop off halftone function spillover stray color lines
@@ -300,14 +380,14 @@
           
           fetchUrlParams();
 
+          if (paramBooleanOffsetlayers == false || paramBooleanOffsetlayers == 'false'){
+            paramOffsetSize = 0;
+          }
+
           cropCanvas();
           fitCanvasInWindow();
           background(255);
           clearRiso();
-
-          if (paramBooleanOffsetlayers == false || paramBooleanOffsetlayers == 'false'){
-            paramOffsetSize = 0;
-          }
           
           if (paramBooleanPrintC == true || paramBooleanPrintC == 'true' ){
             outputCyanLayer(parseInt(paramDotsize), thresholdCyan, parseInt(paramOffsetSize));
@@ -322,15 +402,20 @@
             if (paramBooleanPrintKStraight == true || paramBooleanPrintKStraight == "true"){
               outputBlackLayerStraight();
             } else {
-              outputBlackLayerDotted();              
+              outputBlackLayerDotted(parseInt(paramDotsize));              
             }
           }
           drawRiso();
+
+          if ( paramBooleanGrainyTexture == true || paramBooleanGrainyTexture == "true"){
+            addGrainyTexture(img.width, img.height);
+          }
           
           if ( paramBooleanWhiteSpots == false || paramBooleanWhiteSpots == "false"){
             paramWhiteSpotsSize = 0;
+          } else {
+            addWhiteSpots(paramWhiteSpotsSize, img.width, img.height);
           }
-          addWhiteSpots(paramWhiteSpotsSize, img.width, img.height);
         }
 
         function downloadCanvas() {
@@ -347,7 +432,9 @@
         }
 
         function refreshImage() {
-          
+          paramBooleanHalftone = document.getElementById('radioHalftone').checked;
+          paramBooleanDither = document.getElementById('radioDither').checked;
+
           paramFileName = document.getElementById('textFilename').value;
           paramDotsize = document.getElementById("numberDotsize").value;
           paramBooleanPrintC = document.getElementById("booleanPrintC").checked;
@@ -355,7 +442,9 @@
           paramBooleanPrintY = document.getElementById("booleanPrintY").checked;
           paramBooleanPrintK = document.getElementById("booleanPrintK").checked;
           paramBooleanPrintKStraight = document.getElementById("booleanPrintKStraight").checked;
+          paramBooleanGrainyTexture = document.getElementById("booleanGrainyTexture").checked;
           paramBooleanWhiteSpots = document.getElementById("booleanWhiteSpots").checked;
+          paramWhiteSpotsSize = document.getElementById("numberWhiteSpots").value;
           paramBooleanOffsetlayers = document.getElementById("booleanOffsetlayers").checked;
           paramOffsetSize = document.getElementById("numberOffsetlayers").value;
 
@@ -364,11 +453,14 @@
 
           urlParams.set('filename', paramFileName);
           urlParams.set('dotsize', paramDotsize);
+          urlParams.set('halftone', paramBooleanHalftone);
+          urlParams.set('dither', paramBooleanDither);
           urlParams.set('printC', paramBooleanPrintC);
           urlParams.set('printM', paramBooleanPrintM);
           urlParams.set('printY', paramBooleanPrintY);
           urlParams.set('printK', paramBooleanPrintK);
           urlParams.set('printKstraight', paramBooleanPrintKStraight);
+          urlParams.set('texture', paramBooleanGrainyTexture);
           urlParams.set('whitespots', paramBooleanWhiteSpots);
           urlParams.set('whitespotssize', paramWhiteSpotsSize);
           urlParams.set('offset', paramBooleanOffsetlayers);
@@ -382,11 +474,14 @@
           // grab filename + paramters from URL parameters
           paramFilename = urlParams.get('filename');
           paramDotsize = urlParams.get('dotsize');
+          paramBooleanHalftone = ( urlParams.get('halftone') === 'true' );
+          paramBooleanDither = ( urlParams.get('dither') === 'true' );
           paramBooleanPrintC = ( urlParams.get('printC') === 'true' );
           paramBooleanPrintM = ( urlParams.get('printM') === 'true' );
           paramBooleanPrintY = ( urlParams.get('printY') === 'true' );
           paramBooleanPrintK = ( urlParams.get('printK') === 'true' );
           paramBooleanPrintKStraight = ( urlParams.get('printKstraight') === 'true' );
+          paramBooleanGrainyTexture = ( urlParams.get('texture') === 'true' );
           paramBooleanWhiteSpots = ( urlParams.get('whitespots') === 'true' );
           paramWhiteSpotsSize = urlParams.get('whitespotssize');
           paramBooleanOffsetlayers = ( urlParams.get('offset') === 'true' );
