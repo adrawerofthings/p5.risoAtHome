@@ -14,7 +14,7 @@
   
   </head>
   <body>
-    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 605px; z-index: 1;">
+    <div id="intro" class="window selectedwindow" style="position: absolute; top: 30; left: 30; width: 360px; height: 640px; z-index: 1;">
       <div class="windowheader">
         <div class="windowtitle">p5.riso@home</div>
       </div>
@@ -55,7 +55,7 @@
             </li>
             <li>
               <input type="radio" id="radioNoHalftoneDither" name="halftoneOrDither">
-              <label for="css">No halftone/dither</label>
+              <label for="css">...or no halftone/dither</label>
             </li>
             <hr />
             <li>
@@ -70,9 +70,13 @@
               <input type="checkbox" id="booleanPrintY" name="booleanPrintY">
               <label for="booleanPrintY"> Print Y (yellow) layer?</label>
             </li>
+            <li>
+              <input type="checkbox" id="booleanPrintStraight" name="booleanPrintStraight"  onclick="checkEnabledPrintStraight();">
+              <label for="booleanPrintStraight">...or print image with no color filtering</label>
+            </li>
             <hr />
             <li>
-              <input type="checkbox" id="booleanPrintK" name="booleanPrintK" onclick="checkEnabled();">
+              <input type="checkbox" id="booleanPrintK" name="booleanPrintK" onclick="checkEnabledPrintK();">
               <label for="booleanPrintK"> Make black outlines/areas darker</label>
               <ul>
                 <li>
@@ -97,7 +101,7 @@
             </li>
             <li>
               <input type="checkbox" id="booleanOffsetlayers" name="booleanOffsetlayers" value="offsetlayersYes">
-              <label for="booleanOffsetlayers"> Create error moiré effect by offsetting the four CMYK layers</label>
+              <label for="booleanOffsetlayers"> Create error moiré effect by offsetting the three CMY layers</label>
               <ul>
                 <li>
                   <input type="number" id="numberOffsetlayers" name="numberOffsetlayers" min="0" max="1000">
@@ -142,6 +146,7 @@
         let paramBooleanPrintC;
         let paramBooleanPrintM;
         let paramBooleanPrintY;
+        let paramBooleanPrintStraight;
         let paramBooleanPrintK;
         let paramBooleanPrintKStraight;
         let paramBooleanGrainyTexture;
@@ -166,10 +171,10 @@
           } else {
 
             // default values for filename + print parameters
-            paramFilename = 'TheHouseOnHorseMoutainSample600dpi.png';
+            paramFilename = 'ChungkingMamaSeoul-testphoto.jpg';
             urlParams.set('filename', paramFilename);
 
-            paramDotsize = 5;
+            paramDotsize = 2;
             urlParams.set('dotsize', paramDotsize);
 
             paramBooleanHalftone = true;
@@ -181,29 +186,26 @@
 
             paramBooleanPrintC = true;
             paramBooleanPrintM = true;
-            paramBooleanPrintY = true;
+            paramBooleanPrintY = false;
+            paramBooleanPrintStraight = false;
             paramBooleanPrintK = true;
+            paramBooleanPrintKStraight = true;
+            paramBooleanGrainyTexture = true;
+            paramBooleanWhiteSpots = true;
+            paramWhiteSpotsSize = 2;
+            paramBooleanOffsetlayers = false;
+            paramOffsetSize = 10;
+
             urlParams.set('printC', paramBooleanPrintC);
             urlParams.set('printM', paramBooleanPrintM);
             urlParams.set('printY', paramBooleanPrintY);
+            urlParams.set('printStraight', paramBooleanPrintStraight);
             urlParams.set('printK', paramBooleanPrintK);
-
-            paramBooleanPrintKStraight = true;
             urlParams.set('printKstraight', paramBooleanPrintKStraight);
-
-            paramBooleanGrainyTexture = false;
             urlParams.set('texture', paramBooleanGrainyTexture);
-
-            paramBooleanWhiteSpots = true;
             urlParams.set('whitespots', paramBooleanWhiteSpots);
-
-            paramWhiteSpotsSize = 2;
             urlParams.set('whitespotssize', paramWhiteSpotsSize);
-
-            paramBooleanOffsetlayers = false;
             urlParams.set('offset', paramBooleanOffsetlayers);
-
-            paramOffsetSize = 10;
             urlParams.set('offsetsize', paramOffsetSize);
 
             history.pushState({}, "", window.location.origin + '?' + urlParams);
@@ -225,6 +227,7 @@
           document.getElementById("booleanPrintC").checked = paramBooleanPrintC;
           document.getElementById("booleanPrintM").checked = paramBooleanPrintM;
           document.getElementById("booleanPrintY").checked = paramBooleanPrintY;
+          document.getElementById("booleanPrintStraight").checked = paramBooleanPrintStraight;
           document.getElementById("booleanPrintK").checked = paramBooleanPrintK;
           document.getElementById("booleanPrintKStraight").checked = paramBooleanPrintKStraight;
           document.getElementById("booleanGrainyTexture").checked = paramBooleanGrainyTexture;
@@ -234,6 +237,9 @@
           document.getElementById("numberOffsetlayers").value = parseInt(paramOffsetSize);
 
           img = loadImage('data/' + paramFilename);
+
+          checkEnabledPrintK();
+          checkEnabledPrintStraight();
         }
         function addGrainyTexture(imageWidth, imageHeight) {
           for (let w=1; w < imageWidth - paramOffsetSize; w+=1) {
@@ -331,6 +337,9 @@
           }
           yellowInk.image(workingImageY2, 0, offsetsize);
         }
+        function outputImageStraight() {
+          image(img, 0, 0);
+        }
         function outputBlackLayerStraight() {
           let workingImageK = ditherImage(img, "none", 10);
           blackInk.image(workingImageK, 0, 0);
@@ -403,14 +412,18 @@
           background(255);
           clearRiso();
           
-          if (paramBooleanPrintC == true || paramBooleanPrintC == 'true' ){
-            outputCyanLayer(parseInt(paramDotsize), thresholdCyan, parseInt(paramOffsetSize));
-          }
-          if (paramBooleanPrintM == true || paramBooleanPrintM == 'true' ){
-            outputMagentaLayer(parseInt(paramDotsize), thresholdMagenta, parseInt(paramOffsetSize));
-          }
-          if (paramBooleanPrintY == true || paramBooleanPrintY == 'true' ){
-            outputYellowLayer(parseInt(paramDotsize), thresholdYellow, parseInt(paramOffsetSize));
+          if (paramBooleanPrintStraight == false || paramBooleanPrintStraight == 'false' ){
+            if (paramBooleanPrintC == true || paramBooleanPrintC == 'true' ){
+              outputCyanLayer(parseInt(paramDotsize), thresholdCyan, parseInt(paramOffsetSize));
+            }
+            if (paramBooleanPrintM == true || paramBooleanPrintM == 'true' ){
+              outputMagentaLayer(parseInt(paramDotsize), thresholdMagenta, parseInt(paramOffsetSize));
+            }
+            if (paramBooleanPrintY == true || paramBooleanPrintY == 'true' ){
+              outputYellowLayer(parseInt(paramDotsize), thresholdYellow, parseInt(paramOffsetSize));
+            }
+          } else {
+            outputImageStraight();
           }
           if (paramBooleanPrintK == true || paramBooleanPrintK == 'true' ){
             if (paramBooleanPrintKStraight == true || paramBooleanPrintKStraight == "true"){
@@ -436,12 +449,26 @@
           saveCanvas();
         }
 
-        function checkEnabled() {
+        function checkEnabledPrintK() {
           var isChecked = document.getElementById("booleanPrintK");
           if (isChecked.checked == true) {
             document.getElementById("booleanPrintKStraight").disabled = false;
           } else {
             document.getElementById("booleanPrintKStraight").disabled = true;
+          }
+        }
+        function checkEnabledPrintStraight() {
+          var isChecked = document.getElementById("booleanPrintStraight");
+          if (isChecked.checked == true) {
+            document.getElementById("booleanPrintC").disabled = true;
+            document.getElementById("booleanPrintM").disabled = true;
+            document.getElementById("booleanPrintY").disabled = true;
+            document.getElementById("booleanOffsetlayers").disabled = true;
+          } else {
+            document.getElementById("booleanPrintC").disabled = false;
+            document.getElementById("booleanPrintM").disabled = false;
+            document.getElementById("booleanPrintY").disabled = false;
+            document.getElementById("booleanOffsetlayers").disabled = false;
           }
         }
 
@@ -455,6 +482,7 @@
           paramBooleanPrintC = document.getElementById("booleanPrintC").checked;
           paramBooleanPrintM = document.getElementById("booleanPrintM").checked;
           paramBooleanPrintY = document.getElementById("booleanPrintY").checked;
+          paramBooleanPrintStraight = document.getElementById("booleanPrintStraight").checked;
           paramBooleanPrintK = document.getElementById("booleanPrintK").checked;
           paramBooleanPrintKStraight = document.getElementById("booleanPrintKStraight").checked;
           paramBooleanGrainyTexture = document.getElementById("booleanGrainyTexture").checked;
@@ -474,6 +502,7 @@
           urlParams.set('printC', paramBooleanPrintC);
           urlParams.set('printM', paramBooleanPrintM);
           urlParams.set('printY', paramBooleanPrintY);
+          urlParams.set('printStraight', paramBooleanPrintStraight);
           urlParams.set('printK', paramBooleanPrintK);
           urlParams.set('printKstraight', paramBooleanPrintKStraight);
           urlParams.set('texture', paramBooleanGrainyTexture);
@@ -496,6 +525,7 @@
           paramBooleanPrintC = ( urlParams.get('printC') === 'true' );
           paramBooleanPrintM = ( urlParams.get('printM') === 'true' );
           paramBooleanPrintY = ( urlParams.get('printY') === 'true' );
+          paramBooleanPrintStraight = ( urlParams.get('printStraight') === 'true' );
           paramBooleanPrintK = ( urlParams.get('printK') === 'true' );
           paramBooleanPrintKStraight = ( urlParams.get('printKstraight') === 'true' );
           paramBooleanGrainyTexture = ( urlParams.get('texture') === 'true' );
